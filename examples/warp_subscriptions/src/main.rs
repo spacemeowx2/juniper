@@ -184,7 +184,7 @@ async fn setup_server() {
     .or(homepage)
     .with(log);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
+    warp::serve(routes).run(([127, 0, 0, 1], 18080)).await;
 }
 
 #[tokio::main]
