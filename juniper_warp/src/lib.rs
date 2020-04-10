@@ -398,7 +398,7 @@ pub mod subscriptions {
         let running = Arc::new(AtomicBool::new(false));
         let got_close_signal = Arc::new(AtomicBool::new(false));
 
-        sink_rx.fold(Ok(()), move |_, msg| {
+        sink_rx.take_while(Result::is_ok).fold(Ok(()), move |_, msg| {
             let coordinator = coordinator.clone();
             let context = context.clone();
             let running = running.clone();
