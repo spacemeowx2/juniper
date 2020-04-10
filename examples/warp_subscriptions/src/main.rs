@@ -134,11 +134,7 @@ fn schema() -> Schema {
     Schema::new(Query, EmptyMutation::new(), Subscription)
 }
 
-#[tokio::main]
-async fn main() {
-    ::std::env::set_var("RUST_LOG", "warp_subscriptions");
-    env_logger::init();
-
+async fn setup_server() {
     let log = warp::log("warp_server");
 
     let homepage = warp::path::end().map(|| {
@@ -189,4 +185,38 @@ async fn main() {
     .with(log);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
+}
+
+#[tokio::main]
+async fn main() {
+    ::std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
+
+    setup_server().await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::setup_server;
+    use tokio_tungstenite::{connect_async, tungstenite::Message};
+    use futures::prelude::*;
+    use std::net::Shutdown;
+    use std::os::unix::io::AsRawFd;
+    use libc::close;
+
+    #[tokio::test]
+    async fn handle_ws_error() {
+        ::std::env::set_var("RUST_LOG", "debug");
+        tokio::spawn(async move {
+            println!("connect");
+            let (mut stream, _resp) = connect_async("ws://127.0.0.1:8080/subscriptions").await.unwrap();
+
+            stream.send(Message::Text("asdf".to_string())).await.unwrap();
+            let inner = stream.get_mut();
+            // unsafe { close(inner.as_raw_fd()) };
+            inner.shutdown(Shutdown::Read).unwrap();
+            // stream.close(None).await.unwrap();
+        });
+        setup_server().await;
+    }
 }
